@@ -1,8 +1,10 @@
 mod convert;
 mod copy;
+mod net;
 
 use clap::{Parser, Subcommand};
 use convert::convert;
+use net::create_single_net;
 
 use crate::copy::copy;
 
@@ -22,6 +24,16 @@ pub struct ConvertGroup {
     /// Convert number to octal
     #[clap(short = 'o', long, value_name = "NUMBER")]
     octal: Option<u32>,
+}
+#[derive(Debug, clap::Args, Clone)]
+#[group(required = true, multiple = false)]
+pub struct NetGroup {
+    /// Prefix in XX format
+    #[clap(short = 'p', long, value_name = "PREFIX")]
+    prefix: Option<u8>,
+    /// Mask in xxx.xxx.xxx.xxx format
+    #[clap(short = 'm', long, value_name = "MASK")]
+    mask: Option<String>,
 }
 
 #[derive(Parser)]
@@ -44,6 +56,15 @@ enum Commands {
         #[clap(flatten)]
         input: ConvertGroup,
     },
+    /// Calculates data for network from inputs
+    Net {
+        #[arg(short, long)]
+        /// Address in xxx.xxx.xxx.xxx format
+        address: String,
+
+        #[clap(flatten)]
+        size: NetGroup,
+    },
 }
 
 fn main() {
@@ -53,6 +74,10 @@ fn main() {
             source_path,
             destination_path,
         } => copy(source_path, destination_path),
+
         Commands::Convert { input } => convert(input),
+        Commands::Net { address, size } => {
+            create_single_net(address, size);
+        }
     }
 }
