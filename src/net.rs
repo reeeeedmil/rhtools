@@ -1,6 +1,4 @@
-use std::collections::HashMap;
 use std::net::Ipv4Addr;
-use std::{collections::hash_map::DefaultHasher, hash::Hash, hash::Hasher};
 
 #[derive(Debug, clap::Args, Clone)]
 #[group(required = true, multiple = false)]
@@ -77,15 +75,6 @@ impl Net {
     pub fn get_broadcast(&self) -> Address {
         self.broadcast.get()
     }
-    pub fn get_mask(&self) -> Address {
-        self.mask.get()
-    }
-    pub fn get_wildcard(&self) -> Address {
-        self.wildcard.get()
-    }
-    pub fn get_prefix(&self) -> u8 {
-        self.prefix
-    }
     pub fn __repr__(&self) -> String {
         format!(
             r#"Network address: {}.{}.{}.{}
@@ -112,25 +101,6 @@ Prefix: {}"#,
             self.wildcard.as_vec()[3],
             self.prefix
         )
-    }
-    pub fn __hash__(&self) -> u64 {
-        let mut hasher = DefaultHasher::new();
-        (self.prefix as u64
-            + self.network_address.first_byte as u64
-            + self.network_address.second_byte as u64
-            + self.network_address.third_byte as u64
-            + self.network_address.fourth_byte as u64)
-            .hash(&mut hasher);
-        hasher.finish()
-    }
-    pub fn as_hashmap(&self) -> HashMap<String, Vec<u8>> {
-        HashMap::from([
-            ("network_address".to_string(), self.network_address.as_vec()),
-            ("broadcast".to_string(), self.broadcast.as_vec()),
-            ("mask".to_string(), self.mask.as_vec()),
-            ("wildcard".to_string(), self.wildcard.as_vec()),
-            ("prefix".to_string(), vec![self.prefix]),
-        ])
     }
 }
 pub fn prefix_from_mask(mask: &Address) -> u8 {

@@ -55,6 +55,7 @@ enum Commands {
         #[clap(flatten)]
         size: crate::net::NetGroup,
     },
+    /// Calculates data for a list of subnets
     Scaffold {
         #[arg(short, long)]
         /// Address in xxx.xxx.xxx.xxx format
