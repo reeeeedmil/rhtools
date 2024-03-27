@@ -1,6 +1,28 @@
 use std::collections::HashMap;
 use std::net::Ipv4Addr;
 use std::{collections::hash_map::DefaultHasher, hash::Hash, hash::Hasher};
+
+#[derive(Debug, clap::Args, Clone)]
+#[group(required = true, multiple = false)]
+pub struct NetGroup {
+    /// Prefix in XX format
+    #[clap(short = 'p', long, value_name = "PREFIX")]
+    prefix: Option<u8>,
+    /// Mask in xxx.xxx.xxx.xxx format
+    #[clap(short = 'm', long, value_name = "MASK")]
+    mask: Option<String>,
+}
+#[derive(Debug, clap::Args, Clone)]
+#[group(required = true, multiple = false)]
+pub struct ScaffoldGroup {
+    /// Hosts in XX,X,XX format
+    #[clap(long, value_name = "HOSTS")]
+    hosts: Option<String>,
+    /// Prefixes in XX,XX,XX format
+    #[clap(long, value_name = "PREFIXES")]
+    prefixes: Option<String>,
+}
+
 #[derive(Clone, Copy)]
 pub struct Address {
     first_byte: u8,
@@ -29,6 +51,7 @@ impl Address {
         ]
     }
 }
+
 pub struct Net {
     network_address: Address,
     broadcast: Address,
@@ -278,7 +301,6 @@ pub fn scaffold_prefixes(base_network: &Net, mut prefixes_vec: Vec<u8>) -> Vec<N
     networks
 }
 pub fn create_single_net(addr: String, size: crate::NetGroup) {
-    println!("address {}", addr);
     if addr.len() < 7 && addr.len() > 15 {
         println!("invalid address");
         std::process::exit(0);
@@ -334,5 +356,84 @@ pub fn create_single_net(addr: String, size: crate::NetGroup) {
         );
         println!("{}", created.__repr__());
         std::process::exit(0);
+    }
+}
+pub fn create_scaffold(addr: String, size: crate::NetGroup, input: ScaffoldGroup) {
+    println!("\n");
+    if addr.len() < 7 && addr.len() > 15 {
+        println!("invalid address");
+        std::process::exit(0);
+    }
+    let net_addr: Address = {
+        let addr: Ipv4Addr = match addr.parse() {
+            Ok(res) => res,
+            Err(err) => {
+                println!("{err}");
+                std::process::exit(0);
+            }
+        };
+        Address::new(
+            addr.octets()[0],
+            addr.octets()[1],
+            addr.octets()[2],
+            addr.octets()[3])
+    };
+    let mask: Address = {
+        if size.mask != None {
+            if size.mask.as_ref().unwrap().len() < 7 && size.mask.as_ref().unwrap().len() > 15 {
+                println!("invalid mask");
+                std::process::exit(0);
+            }
+            let mask: Address = {
+                let temp_mask: Ipv4Addr = match size.mask.as_ref().unwrap().parse() {
+                    Ok(res) => res,
+                    Err(err) => {
+                        println!("{err}");
+                        std::process::exit(0);
+                    }
+                };
+                Address::new(
+                    temp_mask.octets()[0],
+                    temp_mask.octets()[1],
+                    temp_mask.octets()[2],
+                    temp_mask.octets()[3],
+                )
+            };
+            mask
+        } else {
+            let mut prefix = size.prefix.unwrap();
+            mask_from_prefix(&mut prefix)
+        }
+    };
+    if input.prefixes != None {
+        let prefixes_vec: Vec<u8> =  {
+            let mut temp_vec_u8: Vec<u8> = vec![];
+            for prefix in input.prefixes.unwrap().split(",") {
+            temp_vec_u8.push(u8::from(prefix.trim().parse::<u8>().unwrap()));
+            }
+            temp_vec_u8
+
+        };
+        let scaffolded = scaffold_prefixes(&Net::new(net_addr, mask), prefixes_vec);
+        for single in scaffolded {
+            println!("\n\n\n{}", single.__repr__());
+        }
+    }
+    else {
+
+        let hosts_vec: Vec<u32> =  {
+            let mut temp_vec: Vec<u32> = vec![];
+            for hosts in input.hosts.unwrap().split(",") {
+                let mut host = u32::from(hosts.trim().parse::<u32>().unwrap());
+                normalize_number(&mut host);
+                temp_vec.push(host);
+            };
+            temp_vec
+
+        };
+        let scaffolded = scaffold_hosts(&Net::new(net_addr, mask), hosts_vec);
+        for single in scaffolded {
+            println!("{}\n\n\n", single.__repr__());
+        }
     }
 }

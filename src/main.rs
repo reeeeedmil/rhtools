@@ -4,7 +4,7 @@ mod net;
 
 use clap::{Parser, Subcommand};
 use convert::convert;
-use net::create_single_net;
+use net::{create_scaffold, create_single_net, NetGroup};
 
 use crate::copy::copy;
 
@@ -24,16 +24,6 @@ pub struct ConvertGroup {
     /// Convert number to octal
     #[clap(short = 'o', long, value_name = "NUMBER")]
     octal: Option<u32>,
-}
-#[derive(Debug, clap::Args, Clone)]
-#[group(required = true, multiple = false)]
-pub struct NetGroup {
-    /// Prefix in XX format
-    #[clap(short = 'p', long, value_name = "PREFIX")]
-    prefix: Option<u8>,
-    /// Mask in xxx.xxx.xxx.xxx format
-    #[clap(short = 'm', long, value_name = "MASK")]
-    mask: Option<String>,
 }
 
 #[derive(Parser)]
@@ -63,7 +53,18 @@ enum Commands {
         address: String,
 
         #[clap(flatten)]
-        size: NetGroup,
+        size: crate::net::NetGroup,
+    },
+    Scaffold {
+        #[arg(short, long)]
+        /// Address in xxx.xxx.xxx.xxx format
+        address: String,
+
+        #[clap(flatten)]
+        size: crate::net::NetGroup,
+
+        #[clap(flatten)]
+        input: net::ScaffoldGroup,
     },
 }
 
@@ -79,5 +80,6 @@ fn main() {
         Commands::Net { address, size } => {
             create_single_net(address, size);
         }
+        Commands::Scaffold { address, size, input } => create_scaffold(address, size, input)
     }
 }
